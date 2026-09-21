@@ -112,7 +112,8 @@
 			by sampling the underlying image, represented mathematically by triangles in the example below, multiple times. In my implementation, I
 			use a square subgrid. The options given in the program are 1x, 4x, 9x, and 16x supersampling, where 1x means no supersampling, although my
 			implementation would work for arbitrarily high supersampling given the upsample rate was square. Thus, at a new sampling rate \(s\), I sampled
-			each pixel on an \(\sqrt(s) \times \sqrt(s)\) grid
+			each pixel on an \(\sqrt(s) \times \sqrt(s)\) grid, centered around the center point of the pixel. So for 1x supersampling, my grid is just
+			a single point at the center of the pixel \((px + 0.5, py + 0.5)/), identical to no supersampling.
 		</p>
 		
 		<div style="display: flex; flex-direction: column; align-items: center;">
@@ -121,30 +122,39 @@
 				<td style="text-align: center;">
 				  <img src="assets/task2_ss1.png" width="400px" alt="Screenshot of test4.svg with a supersampling value of 1"/>
 				  <figcaption>
-					Screenshot of test4.svg with no supersampling zoomed into a skinny aliased region of the pink triangle.
-					In this region, the area covered by the triangle overlaps no sampled points at the center of pixels, so
-					it isn't rendered.
+					Screenshot of test4.svg with no (1x) supersampling zoomed into a skinny aliased region of the pink triangle.
+					
 				</figcaption>
 				</td>
 				<td style="text-align: center;">
 				  <img src="assets/task2_ss4.png" width="400px" alt="Screenshot of test4.svg with a supersampling value of 4"/>
 				  <figcaption>
 					Screenshot of test4.svg with 4x supersampling zoomed into a skinny aliased region of the pink triangle.
-					With supersampling, we can see that the area covered by the triangle overlaps at least one of the 2x2 sampled
-					points per pixel, making sure there is no gap between pixels on the screen representing the triangle. Note
-					how the triangles on the image look slightly blurrier as we represent the image in a way that matches our sampling
-					more closely, not artificially showing high frequency information where we haven't sampled it.
 				  </figcaption>
 				</td>
 				<td style="text-align: center;">
 				  <img src="assets/task2_ss16.png" width="400px" alt="Screenshot of test4.svg with a supersampling value of 16"/>
 				  <figcaption>
 					Screenshot of test4.svg with 16x supersampling zoomed into the skinny aliased region of the pink triangle.
+				  </figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td>
+					In this region, the area covered by the triangle overlaps no sampled points at the center of pixels, so
+					it isn't rendered.
+				</td>
+				<td>
+					With supersampling, we can see that the area covered by the triangle overlaps at least one of the 2x2 sampled
+					points per pixel, making sure there is no gap between pixels on the screen representing the triangle. Note
+					how the triangles on the image look slightly blurrier as we represent the image in a way that matches our sampling
+					more closely, not artificially showing high frequency information where we haven't sampled it.
+				</td>
+				<td>
 					With more supersampling, we can see the effect magnified as we're sampling 4x4 subpixels per pixel, giving 
 					more information for how to draw the triangle. Interestingly, at this magnification another aliasing effect
 					or Moire pattern shows up as there's a periodic structure in intensity showing on the triangle's surface
 					as the actual triangle covers more or fewer subpixels in each pixel depending on its relative phase.
-				  </figcaption>
 				</td>
 			  </tr>
 			</table>

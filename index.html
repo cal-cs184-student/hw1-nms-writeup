@@ -104,7 +104,13 @@
 		<p>
 			In this task, I implemented image supersampling, an anti-aliasing technique whereby we sample the image more finely than once per pixel
 			to help alleviate the jagged edges and aliasing artifacts present when high frequency data is undersampled. See the diagram below
-			for a comparison between supersampling levels.
+			for a comparison between supersampling levels. Supersampling is the most computationally expensive but realistically data-based approach
+			to anti-aliasing. It requires multiplying your computations by a preset sample_rate factor in order to find more detail in your image, but 
+			it does mean that the anti-aliasing you perform is based on the underlying image data and not an approximation. This means it would be a
+			great method for pre-rendered scenes like product catalogues, films, or scientific simulations, but it wouldn't be a great choice for a 
+			real-time application like a game or interactive animation. Unfortunately, to reduce the aliasing in each direction by a given amount, 
+			you have to do that many squared more computations. This gives \(O(n^2)\) scaling for linear benefit, meaning incremental improvements
+			in aliasing require more and more computation.
 		</p>
 
 		<p>
@@ -112,8 +118,24 @@
 			by sampling the underlying image, represented mathematically by triangles in the example below, multiple times. In my implementation, I
 			use a square subgrid. The options given in the program are 1x, 4x, 9x, and 16x supersampling, where 1x means no supersampling, although my
 			implementation would work for arbitrarily high supersampling given the upsample rate was square. Thus, at a new sampling rate \(s\), I sampled
-			each pixel on an \(\sqrt(s) \times \sqrt(s)\) grid, centered around the center point of the pixel. So for 1x supersampling, my grid is just
-			a single point at the center of the pixel \((px + 0.5, py + 0.5)/), identical to no supersampling.
+			each pixel on an \( \sqrt{s} \times \sqrt{s} \) grid, centered around the center point of the pixel. So for 1x supersampling, my grid is just
+			a single point at the center of the pixel \( (px + 0.5, py + 0.5) \), identical to no supersampling. For 4x supersampling, I sample each pixel
+			on a 2x2 grid where the coordinate locations are \( (px + 0.25 + nx \times 0.5, py + 0.25 + ny \times 0.5) \) for subgrid indices \((nx, ny) \in \{0, 1\} \).
+			For better anti-aliasing, one could have convolved this supersampled grid with a good sampling function to determine the correct value at each pixel, but I
+			took the simple route and averaged the pixel values, essentially implementing convolution of a \(\sqrt{s} \times \sqrt{s}\) size box kernel with
+			even \(\frac{1}{s}\) weightings and a stride size \(\sqrt{s}\).
+		</p>
+		<p>
+			To represent this data, I enlarged the <code>sample_buffer</code> by a factor of the sample rate, since I now needed to store \(s\) samples per pixel instead of 
+			just one. Whereas before I had thought of the buffer as a \(width \times height\) array, flattened into a 1 dimensional array, I now structured the buffer 
+			as a \(\sqrt{s} \cdot width \times \sqrt{s} \cdot height \) matrix flattened into a 1D array. The top \(\sqrt{s} \times \sqrt{s}\) values then represented
+			the \(s\) samples taken from the first pixel's \(\sqrt{s} \times \sqrt{s}\) subgrid array. To fill the \(width \times height\) framebuffer, I performed the 
+			averaging (box convolution) described above, putting the average color value of the sub-samples of each pixel into that pixel's location in the framebuffer.
+		</p>
+		<p>
+			To make sure rendering pixels and lines gave the same behavior as before, I had their rendering function, <code>fill_pixel</code> fill the
+			entire \(\sqrt{s} \times \sqrt{s}\) subgrid for the pixel they were sampling so that the average value in that pixel stays the same and it
+			renders identically. This illuminates the meaning of the pre-written function name <code>fill_pixel</code>.
 		</p>
 		
 		<div style="display: flex; flex-direction: column; align-items: center;">
@@ -122,20 +144,20 @@
 				<td style="text-align: center;">
 				  <img src="assets/task2_ss1.png" width="400px" alt="Screenshot of test4.svg with a supersampling value of 1"/>
 				  <figcaption>
-					Screenshot of test4.svg with no (1x) supersampling zoomed into a skinny aliased region of the pink triangle.
+					Screenshot of <code>test4.svg</code> with no (1x) supersampling zoomed into a skinny aliased region of the pink triangle.
 					
 				</figcaption>
 				</td>
 				<td style="text-align: center;">
 				  <img src="assets/task2_ss4.png" width="400px" alt="Screenshot of test4.svg with a supersampling value of 4"/>
 				  <figcaption>
-					Screenshot of test4.svg with 4x supersampling zoomed into a skinny aliased region of the pink triangle.
+					Screenshot of <code>test4.svg</code> with 4x supersampling zoomed into a skinny aliased region of the pink triangle.
 				  </figcaption>
 				</td>
 				<td style="text-align: center;">
 				  <img src="assets/task2_ss16.png" width="400px" alt="Screenshot of test4.svg with a supersampling value of 16"/>
 				  <figcaption>
-					Screenshot of test4.svg with 16x supersampling zoomed into the skinny aliased region of the pink triangle.
+					Screenshot of <code>test4.svg</code> with 16x supersampling zoomed into the skinny aliased region of the pink triangle.
 				  </figcaption>
 				</td>
 			  </tr>

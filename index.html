@@ -183,12 +183,14 @@
 		</div>
 
 		<h2>Task 3: Transforms</h2>
-		In this task, we implemented transformations via matrices to enable rendering scenes generated hierarchically, where
-		a tree of transformations defines different related parts of an object. The example (shown below) is a robot
-		which has arms, legs, a torso, and a head which are each defined relative to a central object position and 
-		rotation. The head, for example, is first translated above the central body, then rotated. For this task, we
-		also had to modify the robot to perform some action by editing the text inside the SVG file. Here, I have 
-		created a <i>jumping</i> robot, which acrobatically leaps into the air.
+		<p>
+			In this task, we implemented transformations via matrices to enable rendering scenes generated hierarchically, where
+			a tree of transformations defines different related parts of an object. The example (shown below) is a robot
+			which has arms, legs, a torso, and a head which are each defined relative to a central object position and 
+			rotation. The head, for example, is first translated above the central body, then rotated. For this task, we
+			also had to modify the robot to perform some action by editing the text inside the SVG file. Here, I have 
+			created a <i>jumping</i> robot, which acrobatically leaps into the air.
+		</p>
 
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
@@ -211,11 +213,39 @@
 		</div>
 
 		<h2>Task 4: Barycentric coordinates</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-		magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-		consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-		pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-		laborum.
+		<p>
+			In this task, we implemented color gradients across triangles using barycentric coordinates. Barycentric coordinates
+			tell you the position of a point within a triangle, just like cartesian coordinates. The difference is that 
+			barycentric coordinates describe the point as a linear combination of the triangle's vertices. This lets you
+			associate the point easily with nearby vertices, allowing for smooth interpolation of quantities associated with
+			each vertex like, say, color.
+		</p>
+
+		<p>
+			<figure>
+				<img src="assets/barycentric-coordinates-02.png" alt="Diagram showing barycentric coordinates" style="width:50%"/>
+				<figcaption>
+					Diagram showing how the point p, inside the triangle ABC, is a linear combination of the point A and the vectors pointing from A to B and A to C. Equivalently,
+					it could be described as a linear combination of the vectors from the origin to A, origin to B, and origin to C. (Source: https://alecjacobson.com/weblog/1596.html)
+				</figcaption>
+			</figure>
+		</p>
+
+		<p>
+			Using this technique, it's possible to render color wheels like this one below.
+		</p>
+
+		<p>
+			<figure>
+				<img src="assets/barycentric_circle.png" alt="Screenshot of svg/basic/test7.svg" style="width:50%"/>
+				<figcaption>
+					Screenshot of <code>test7.svg</code> showing how interpolating colors using barycentric coordinates can be used to draw
+					gradients like this color wheel.
+				</figcaption>
+			</figure>
+		</p>
+
+		
 
 		<h2>Task 5: "Pixel sampling" for texture mapping</h2>
 		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore

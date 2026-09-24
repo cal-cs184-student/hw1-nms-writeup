@@ -30,7 +30,7 @@
 <body>
 	<div class="container">
 		<h1>CS184/284A Fall 2026 Homework 1 Write-Up</h1>
-		<div style="text-align: center;">Names: </div>
+		<div style="text-align: center;">Name: Noah Stiegler </div>
 
 		<br>
 
@@ -43,9 +43,31 @@
 			href="https://github.com/cal-cs184-student/hw1-nms">https://github.com/cal-cs184-student/hw1-nms</a>
 
 		<h2>Overview</h2>
-		(TODO) Give a high-level overview of what you implemented in this homework. Think about what you've built as a
-		whole. Share your thoughts on what interesting things you've learned from completing the homework.
-
+		<p>
+			In this homework, I implemented pieces of a simple rendering pipeline, specifically focusing on the sampling
+			and rasterization components. Overall, I implemented rendering triangles with single colors, colors on each 
+			vertex which get interpolated inside the triangle, and textures on the triangles. I also implemented simple
+			transformations to allow for hierarchical scene generation as well as sampling techniques such as supersampling,
+			bilinear interpolation, and mipmap level sampling. In total, the project can take a fairly wide range of
+			specified svg images and display them to the screen at arbitrary zoom levels and with different sampling methods.
+		</p>
+		<p>
+			In completing this project, I learned a lot about the way that images are drawn and displayed to a screen, specifically
+			thinking more deeply than ever before about the issues of triangle rasterization and resampling. Before this, I had never
+			quite understood how you take an image, described in terms of a width and height in pixels, and display it on a screen 
+			in a number of pixels <i>other</i> than the number of pixels it had originally been provided with. Connecting this issue with
+			results from signal processing and sampling theory, then seeing better pictures, was super staisfying. I also used this 
+			project as an opportunity to brush up on my C++ and debugger usage, as well as to test the effectiveness of LLMs as a
+			second pair of eyes for bug-hunting. For example, when implementing texture sampling, I had been seeing chromatic artifacts
+			around the edges of the warped UC Berkeley seal. Gemini (Pro model) found a place where I had forgotten to check for an 
+			out-of-bounds read. Clipping my indices fixed the issue. I also enjoyed working through and learning about the OpenGL edge 
+			rules for whether a point is inside a triangle. However, at one point when drawing the color wheel, my program was displaying
+			a thin white jagged diagonal line, indicating that some pixels on the edge of two triangles were "falling through the crack"
+			and ending up outside of both of them instead of inside one or the other. I ended up commenting out my edge checkers, simply
+			allowing all pixels on an edge to be considered inside a triangle. This fixed the issue, but may have led to further artifacts
+			on triangle borders.
+		</p>
+		
 		<h2>Task 1: Drawing Single-Color Triangles</h2>
 		<p>
 			For this task, I implemented simple triangle rasterization given three vertices and a color for the
@@ -55,7 +77,8 @@
 			To make sure not to do too much extra work, I find the bounding box around the triangle using the most
 			extreme x and y values of its vertices. I only check samples (pixels) within this bounding box.
 			If that bounding box collapses to a line, then I call the pre-existing line rasterization function. Why
-			re-invent the wheel?
+			re-invent the wheel? Note that the bounding box clips to the screen boundaries, so no pixels are checked
+			outside of the viewing window.
 		</p>
 		<p>
 			I then check whether the winding order of the triangle's vertices is clockwise or counterclockwise. I
@@ -86,6 +109,12 @@
 			polygon. A top edge is one which is horizontal and above all other lines. A left edge is a little harder to
 			describe, but can be defined as an edge which "descends" as we follow it in the ccw direction. This is why 
 			I ensured all triangles which reach this point have ccw winding order.
+		</p>
+		<p>
+			<b>Note:</b> Update - I have removed the edge check, replacing it with a simple rule: if it's on an edge, it belongs
+			to that triangle. I don't believe the float (32-bit precision) numbers we're using have quite the precision needed 
+			to implement this check for all example images. For example, <code>test7.svg</code> has some artifacting at the borders
+			of triangles where there are pixels which fall through the cracks and end up not being associated with either triangle.
 		</p>
 
 		<p>
@@ -306,19 +335,96 @@
 		</div>
 
 		<h2>Task 6: "Level Sampling" with mipmaps for texture mapping</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-		magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-		consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-		pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-		laborum.
+		<p>
+			One issue with texture sampling is that if you're far away from a texture, then one screen pixel might cover multiple
+			texture pixels. Depending on how the renderer resolves the decision about what to draw, there may be artifacts and 
+			aliasing.
+		</p>
+		<p>
+			Level sampling and mipmaps are a way to address this problem. First, when a texture is loaded, a mipmap
+			is created containing the original texture as well as properly downsampled versions of the texture each with half 
+			the size and resolution (going down to a texture which is just a single pixel - the average color of the texture).
+			This forms the "levels" of detail. Depending on how far away or angled the camera is from the texture being sampled,
+			we sample the precomputed lower-resolution version of the texture, removing aliasing artifacts since there is no 
+			higher frequency information in the lower resolution images. We go up in detail (down in levels) the closer we are
+			to a texture (AKA the larger the texture appears in the camera).
+		</p>
+		<p>
+			Let's recap the techniques we've now implemented to help solve issues with pixel sampling. Supersampling is the 
+			highest detail but most compute intensive since it involves making \(s\) more samples than we otherwise would.
+			In my implementation, it also takes the most extra memory since we have to store those \(h \times w \times s\) extra samples. A more 
+			memory-conscious implementation might re-use a smaller sample buffer and resolve that sample buffer to the 
+			frame buffer more often. Supersampling solves the issues associated with aliasing when there is detail in the
+			image that is too fine for the default pixel sampling. This works well if there's a mathematically defined image
+			or if we've minified a texture, but does nothing to help if we've magnified a texture since we're already taking
+			samples more finely than needed.
+		</p>
+		<p>
+			For dealing with textures, we can solve this problem by going from the default "nearest" sampling method 
+			to bilinear sampling. If we imagine our sampling as taking the height of a surface in 3D (for each color),
+			then we only know the height of our texture samples, infinitesimal points. Using nearest sampling, we extend
+			those points into squares, creating a piecewise constant function to sample. With bilinear sampling, we
+			choose to interpolate using quadratic surfaces to estimate detail between samples assuming the image was 
+			originally sampled from a relatively smooth intensity distribution. This takes more compute, roughly equivalent
+			to 4x supersampling, since we have to take the four nearest samples and interpolating between them to calculate
+			the height of our surface where we're sampling. That compute does scale multiplicatively with any existing 
+			supersampling setting, since we would do bilinear sampling for each supersampled point. This method takes
+			a small amount of constant extra memory.
+		</p>
+		<p>
+			This still doesn't really help when we're minifying textures, since the problem there is that one screen pixel
+			covers multiple texture pixels. That's where we use level sampling. Level sampling takes \(\frac{4}{3}\) times
+			as much memory as the original texture (an extra \(\frac{1}{3} h \times w \)), since we have to store additional
+			pre-computed downsampled images. Each image is \(\frac{1}{4}\) the size of the layer before it since each side
+			length is halved on each layer step. There's a small extra amount of compute that must be used to determine 
+			which layer to sample. In our implementation, we compute two extra coordinates at which to sample the texture.
+			We don't actually take these samples, so there isn't the slowdown from potential cache misses, but we do 
+			compute 3 locations where before we only have to compute one. Generally, this method should be relatively quick
+			since the downsampled textures are pre-computed instead of having to compute some kind of blurring or averaging 
+			for each pixel we draw.
+		</p>
+		<p>
+			Below, find an example using an image of the supermassive black hole at the center of the galaxy M87, M87*. The
+			image shows the derived polarization using directed streamlines. Polarization traces the magnetic fields in the
+			accretion region around the black hole. The example shows the difference between nearest and bilinear pixel 
+			sampling as well as the effect of using level sampling to anti-alias the image. The image has been minified (AKA
+			the camera zoomed out) to allow the effects of level sampling to be seen more easily.
+		</p>
 
-		<h2>(Optional) Task 7: Extra Credit - Draw Something Creative!</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-		magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-		consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-		pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-		laborum.
-
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/m87_level0_nearest.png" width="400px" alt="Zoomed out image of M87, inspecting fine detail features"/>
+				  <figcaption>
+					No Level Sampling | Nearest Pixel Sampling
+					
+				</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/m87_level0_bilinear.png" width="400px" alt="Zoomed out image of M87, inspecting fine detail features"/>
+				  <figcaption>
+					No Level Sampling | Bilinear Pixel Sampling
+				  </figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="assets/m87_levelnear_nearest.png" width="400px" alt="Zoomed out image of M87, inspecting fine detail features"/>
+				  <figcaption>
+					Nearest Level Sampling | Nearest Pixel Sampling
+					
+				</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/m87_levelnear_bilinear.png" width="400px" alt="Zoomed out image of M87, inspecting fine detail features"/>
+				  <figcaption>
+					Nearest Level Sampling | Bilinear Pixel Sampling
+				  </figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 	</div>
 </body>
